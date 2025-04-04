@@ -60,9 +60,11 @@ npm run dev
 ````
 
 🖼️ Exemplo de Uso
+
 Suba uma planilha e veja os dados convertidos automaticamente para R$, prontos para exportar como relatórios em PDF e Excel.
 
 🤝 Contribua
+
 Contribuições são muito bem-vindas!
 Se quiser colaborar, siga os passos:
 1. Fork o projeto
