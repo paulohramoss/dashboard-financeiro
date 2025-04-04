@@ -1,52 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-  Typography,
-  CircularProgress
-} from '@mui/material';
-import {
-  CloudUpload as CloudUploadIcon,
-  CloudDownload as CloudDownloadIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material';
-import { GoogleDriveService } from '../services/googleDrive';
+import { Box, Button, Typography, List, ListItem, ListItemText, CircularProgress } from '@mui/material';
+import { googleDriveService } from '../services/googleDriveService';
 
 interface GoogleDriveManagerProps {
-  onFileSelect: (file: Blob) => void;
+  onFileSelect?: (file: Blob) => void;
 }
 
-export const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect }) => {
-  const [open, setOpen] = useState(false);
+const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect }) => {
+  const [isLoading, setIsLoading] = useState(false);
   const [files, setFiles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const driveService = new GoogleDriveService();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  useEffect(() => {
+    const token = localStorage.getItem('googleAccessToken');
+    setIsAuthenticated(!!token);
+  }, []);
 
-  const loadFiles = async () => {
+  const handleAuthenticate = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
-      const fileList = await driveService.listFiles();
-      if (fileList) {
-        setFiles(fileList);
+      const response = await googleDriveService.authenticate();
+      if (!response.success) {
+        throw new Error(response.error);
       }
-    } catch (error) {
-      setError('Erro ao carregar arquivos. Tente novamente.');
-      console.error('Erro ao carregar arquivos:', error);
+      // Abrir a URL de autenticação em uma nova janela
+      window.location.href = response.authUrl;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao autenticar');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleListFiles = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await googleDriveService.listFiles();
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+      setFiles(response.files);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao listar arquivos');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -55,130 +55,88 @@ export const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSe
     if (!file) return;
 
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
-      await driveService.uploadFile(file);
-      await loadFiles();
-    } catch (error) {
-      setError('Erro ao fazer upload do arquivo. Tente novamente.');
-      console.error('Erro ao fazer upload:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFileDownload = async (fileId: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const file = await driveService.downloadFile(fileId);
-      if (file) {
-        onFileSelect(file);
-        handleClose();
+      const response = await googleDriveService.uploadFile(file);
+      if (!response.success) {
+        throw new Error(response.error);
       }
-    } catch (error) {
-      setError('Erro ao baixar arquivo. Tente novamente.');
-      console.error('Erro ao baixar arquivo:', error);
+      // Atualizar a lista de arquivos após o upload
+      await handleListFiles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao fazer upload do arquivo');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (open) {
-      loadFiles();
-    }
-  }, [open]);
 
   return (
-    <>
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<CloudUploadIcon />}
-        onClick={handleOpen}
-        sx={{ mr: 2 }}
-      >
-        Google Drive
-      </Button>
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h5" gutterBottom>
+        Gerenciador do Google Drive
+      </Typography>
 
-      <Dialog
-        open={open}
-        onClose={handleClose}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box display="flex" alignItems="center" justifyContent="space-between">
-            <Typography variant="h6">Arquivos do Google Drive</Typography>
-            <Box>
-              <IconButton onClick={loadFiles} disabled={loading}>
-                <RefreshIcon />
-              </IconButton>
-            </Box>
-          </Box>
-        </DialogTitle>
+      <Box sx={{ mb: 3 }}>
+        {!isAuthenticated ? (
+          <Button
+            variant="contained"
+            onClick={handleAuthenticate}
+            disabled={isLoading}
+          >
+            Autenticar
+          </Button>
+        ) : (
+          <>
+            <Button
+              variant="contained"
+              onClick={handleListFiles}
+              disabled={isLoading}
+              sx={{ mr: 2 }}
+            >
+              Listar Arquivos
+            </Button>
+            <Button
+              variant="contained"
+              component="label"
+              disabled={isLoading}
+            >
+              Upload de Arquivo
+              <input
+                type="file"
+                hidden
+                onChange={handleFileUpload}
+              />
+            </Button>
+          </>
+        )}
+      </Box>
 
-        <DialogContent>
-          <Box mb={2}>
-            <input
-              accept=".xlsx,.xls"
-              style={{ display: 'none' }}
-              id="upload-file"
-              type="file"
-              onChange={handleFileUpload}
-            />
-            <label htmlFor="upload-file">
-              <Button
-                variant="outlined"
-                component="span"
-                startIcon={<CloudUploadIcon />}
-                disabled={loading}
-                fullWidth
-              >
-                Fazer Upload
-              </Button>
-            </label>
-          </Box>
+      {isLoading && <CircularProgress />}
 
-          {error && (
-            <Typography color="error" variant="body2" sx={{ mb: 2 }}>
-              {error}
-            </Typography>
-          )}
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
 
-          {loading ? (
-            <Box display="flex" justifyContent="center" p={3}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <List>
-              {files.map((file) => (
-                <ListItem key={file.id} divider>
-                  <ListItemText
-                    primary={file.name}
-                    secondary={new Date(file.modifiedTime).toLocaleDateString('pt-BR')}
-                  />
-                  <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      onClick={() => handleFileDownload(file.id)}
-                      disabled={loading}
-                    >
-                      <CloudDownloadIcon />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              ))}
-              {files.length === 0 && !loading && (
-                <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
-                  Nenhum arquivo encontrado
-                </Typography>
-              )}
-            </List>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+      {files.length > 0 && (
+        <List>
+          {files.map((file) => (
+            <ListItem key={file.id}>
+              <ListItemText
+                primary={file.name}
+                secondary={
+                  <a href={file.webViewLink} target="_blank" rel="noopener noreferrer">
+                    Abrir no Google Drive
+                  </a>
+                }
+              />
+            </ListItem>
+          ))}
+        </List>
+      )}
+    </Box>
   );
-}; 
+};
+
+export default GoogleDriveManager; 

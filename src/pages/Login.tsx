@@ -1,40 +1,39 @@
 import React, { useState } from 'react';
-import { 
-  Container, 
-  Paper, 
-  TextField, 
-  Button, 
-  Typography, 
+import { useNavigate } from 'react-router-dom';
+import {
+  Container,
   Box,
-  Alert,
-  CircularProgress,
+  Typography,
+  TextField,
+  Button,
+  Paper,
   Link
 } from '@mui/material';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../config/firebase';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-export function Login() {
+export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { setIsAuthenticated } = useAuth();
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
-      setError('');
-      setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate('/dashboard');
+      // Aqui você implementaria a lógica real de autenticação
+      // Por enquanto, vamos apenas simular
+      if (email && password) {
+        localStorage.setItem('authToken', 'dummy-token');
+        setIsAuthenticated(true);
+        navigate('/');
+      } else {
+        throw new Error('Por favor, preencha todos os campos');
+      }
     } catch (err) {
-      setError('Email ou senha inválidos');
-    } finally {
-      setLoading(false);
+      setError(err instanceof Error ? err.message : 'Erro ao fazer login');
     }
-  }
+  };
 
   return (
     <Container component="main" maxWidth="xs">
@@ -48,14 +47,13 @@ export function Login() {
       >
         <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
           <Typography component="h1" variant="h5" align="center" gutterBottom>
-            Dashboard Financeiro
-          </Typography>
-          <Typography component="h2" variant="h6" align="center" color="textSecondary" gutterBottom>
             Login
           </Typography>
-          
-          {error && <Alert severity="error" sx={{ mt: 2, mb: 2 }}>{error}</Alert>}
-          
+          {error && (
+            <Typography color="error" align="center" sx={{ mb: 2 }}>
+              {error}
+            </Typography>
+          )}
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
             <TextField
               margin="normal"
@@ -68,7 +66,6 @@ export function Login() {
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
             />
             <TextField
               margin="normal"
@@ -81,26 +78,18 @@ export function Login() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
             />
             <Button
               type="submit"
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
             >
-              {loading ? <CircularProgress size={24} /> : 'Entrar'}
+              Entrar
             </Button>
-
             <Box sx={{ textAlign: 'center' }}>
-              <Link
-                component="button"
-                variant="body2"
-                onClick={() => navigate('/register')}
-                sx={{ textDecoration: 'none' }}
-              >
-                Não tem uma conta? Cadastre-se
+              <Link href="/register" variant="body2">
+                Não tem uma conta? Registre-se
               </Link>
             </Box>
           </Box>
@@ -108,4 +97,4 @@ export function Login() {
       </Box>
     </Container>
   );
-} 
+}; 
