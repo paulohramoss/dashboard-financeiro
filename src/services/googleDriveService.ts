@@ -21,8 +21,6 @@ interface UploadResponse extends BaseApiResponse {
   webViewLink?: string;
 }
 
-type ApiResponse = AuthResponse | FilesResponse | UploadResponse;
-
 const getHeaders = () => {
   const token = localStorage.getItem('googleAccessToken');
   return {
