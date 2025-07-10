@@ -11,7 +11,6 @@ interface GoogleDriveManagerProps {
 
 const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [files, setFiles] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const theme = useTheme();
@@ -45,7 +44,6 @@ const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect })
       if (!response.success) {
         throw new Error(response.error);
       }
-      setFiles(response.files);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao listar arquivos');
     } finally {
