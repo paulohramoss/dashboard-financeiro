@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, Box, Container, Grid, Paper, Fade } from '@mui/material';
-import { theme } from './theme';
+import { ThemeProvider, CssBaseline, Box, Container, Grid, Paper, Fade, IconButton } from '@mui/material';
+import { lightTheme, darkTheme } from './theme';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { OAuth2Callback } from './pages/OAuth2Callback';
@@ -27,16 +29,6 @@ const MainContent: React.FC = () => {
     { categoria: 'Total', valor: 0 },
     { categoria: 'Sobra', valor: 0 }
   ]);
-
-  const [showTable, setShowTable] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowTable(true);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleDataChange = (newData: DataItem[]) => {
     const { orcamentoDisponivel, totalDespesas } = calculateTotals(newData);
@@ -76,9 +68,9 @@ const MainContent: React.FC = () => {
               <GoogleDriveManager onFileSelect={handleFileSelect} />
             </Box>
           </Grid>
-          {showTable && (
+          {data.length > 2 && (
             <Grid item xs={12}>
-              <Fade in={showTable}>
+              <Fade in={true}>
                 <Paper sx={{ p: 3 }}>
                   <FinanceTable data={data} setData={handleDataChange} />
                 </Paper>
@@ -92,9 +84,18 @@ const MainContent: React.FC = () => {
 };
 
 function App() {
+  const [darkMode, setDarkMode] = useState(false);
+
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
       <CssBaseline />
+      <IconButton
+        sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1300 }}
+        onClick={() => setDarkMode((prev) => !prev)}
+        color="inherit"
+      >
+        {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+      </IconButton>
       <AuthProvider>
         <Router>
           <Routes>

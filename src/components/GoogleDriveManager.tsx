@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Typography, List, ListItem, ListItemText, CircularProgress } from '@mui/material';
+import { Box, Button, Typography, CircularProgress, useTheme } from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import GoogleIcon from '@mui/icons-material/Google';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import { googleDriveService } from '../services/googleDriveService';
 
 interface GoogleDriveManagerProps {
@@ -11,6 +14,7 @@ const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect })
   const [files, setFiles] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const theme = useTheme();
 
   useEffect(() => {
     const token = localStorage.getItem('googleAccessToken');
@@ -25,7 +29,6 @@ const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect })
       if (!response.success) {
         throw new Error(response.error);
       }
-      // Abrir a URL de autenticação em uma nova janela
       window.location.href = response.authUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao autenticar');
@@ -61,7 +64,6 @@ const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect })
       if (!response.success) {
         throw new Error(response.error);
       }
-      // Atualizar a lista de arquivos após o upload
       await handleListFiles();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer upload do arquivo');
@@ -70,16 +72,59 @@ const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect })
     }
   };
 
+  const handleLocalFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && onFileSelect) {
+      onFileSelect(file);
+    }
+  };
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h5" gutterBottom>
+    <Box
+      sx={{
+        minHeight: '80vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
+        borderRadius: 3,
+        boxShadow: 3,
+        py: 6,
+        mt: 4
+      }}
+    >
+      <img
+        src="/images/lucro-financeiro.png"
+        alt="Logo"
+        style={{ width: 100, marginBottom: 24 }}
+      />
+      <Typography variant="h3" fontWeight="bold" gutterBottom align="center">
         Gerenciador do Google Drive
       </Typography>
-
-      <Box sx={{ mb: 3 }}>
+      <Typography variant="h6" color="text.secondary" gutterBottom align="center">
+        Importe, edite e gerencie suas finanças de forma simples e segura.
+      </Typography>
+      <Box mt={4} display="flex" gap={2}>
+        <Button
+          variant="outlined"
+          size="large"
+          startIcon={<FolderOpenIcon />}
+          component="label"
+          disabled={isLoading}
+        >
+          Importar do Computador
+          <input
+            type="file"
+            hidden
+            onChange={handleLocalFileImport}
+          />
+        </Button>
         {!isAuthenticated ? (
           <Button
             variant="contained"
+            size="large"
+            startIcon={<GoogleIcon />}
             onClick={handleAuthenticate}
             disabled={isLoading}
           >
@@ -89,14 +134,8 @@ const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect })
           <>
             <Button
               variant="contained"
-              onClick={handleListFiles}
-              disabled={isLoading}
-              sx={{ mr: 2 }}
-            >
-              Listar Arquivos
-            </Button>
-            <Button
-              variant="contained"
+              size="large"
+              startIcon={<CloudUploadIcon />}
               component="label"
               disabled={isLoading}
             >
@@ -107,33 +146,22 @@ const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect })
                 onChange={handleFileUpload}
               />
             </Button>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={handleListFiles}
+              disabled={isLoading}
+            >
+              Listar Arquivos
+            </Button>
           </>
         )}
       </Box>
-
-      {isLoading && <CircularProgress />}
-
+      {isLoading && <CircularProgress sx={{ mt: 4 }} />}
       {error && (
-        <Typography color="error" sx={{ mb: 2 }}>
+        <Typography color="error" sx={{ mt: 2 }}>
           {error}
         </Typography>
-      )}
-
-      {files.length > 0 && (
-        <List>
-          {files.map((file) => (
-            <ListItem key={file.id}>
-              <ListItemText
-                primary={file.name}
-                secondary={
-                  <a href={file.webViewLink} target="_blank" rel="noopener noreferrer">
-                    Abrir no Google Drive
-                  </a>
-                }
-              />
-            </ListItem>
-          ))}
-        </List>
       )}
     </Box>
   );
