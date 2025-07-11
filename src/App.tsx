@@ -14,8 +14,7 @@ import { DataItem } from './types';
 import * as XLSX from 'xlsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, Legend, ResponsiveContainer } from 'recharts';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
+import CircularProgress from '@mui/material/CircularProgress';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -36,6 +35,8 @@ const MainContent: React.FC = () => {
   const [mesSelecionado, setMesSelecionado] = useState<number>(0); // índice do mês
   const [planilha, setPlanilha] = useState<any>(null); // worksheet para reprocessar ao trocar mês
   const [tipoGrafico, setTipoGrafico] = useState<'pizza' | 'barra'>('pizza');
+  const [loading, setLoading] = useState(false);
+  const [arquivoValido, setArquivoValido] = useState(false);
 
   const handleDataChange = (newData: DataItem[]) => {
     const { orcamentoDisponivel, totalDespesas } = calculateTotals(newData);
@@ -60,7 +61,15 @@ const MainContent: React.FC = () => {
   };
 
   const handleFileSelect = async (file: Blob) => {
+    const nomeArquivo = (file as any).name || '';
+    const extensao = nomeArquivo.split('.').pop()?.toLowerCase();
+    if (!['pdf', 'xls', 'xlsx'].includes(extensao)) {
+      alert('Por favor, selecione um arquivo .pdf, .xls ou .xlsx');
+      return;
+    }
+    setArquivoValido(true);
     try {
+      setLoading(true);
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -81,6 +90,8 @@ const MainContent: React.FC = () => {
       processarDados(worksheet, 0);
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,61 +103,105 @@ const MainContent: React.FC = () => {
     }
   };
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Verifica se só o card está visível
+  const somenteCard = !arquivoValido;
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh',
+    <Box sx={{
       backgroundColor: 'background.default',
-      pt: isMobile ? 1 : 4,
-      pb: isMobile ? 2 : 8
+      pt: somenteCard ? 2 : 4,
+      pb: somenteCard ? 2 : 8,
+      width: '100%',
+      boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      overflowX: 'hidden',
+      overflowY: 'auto',
     }}>
-      <Container maxWidth={isMobile ? 'sm' : 'lg'}>
-        <Grid container spacing={isMobile ? 1 : 3}>
-          <Grid item xs={12}>
-            <Box mb={isMobile ? 1 : 3}>
+      {/* Loading Overlay */}
+      {loading && (
+        <Box sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          bgcolor: 'rgba(0,0,0,0.35)',
+          zIndex: 2000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <CircularProgress size={64} thickness={5} />
+            <Box mt={2} color="#fff" fontWeight="bold">Carregando arquivo...</Box>
+          </Box>
+        </Box>
+      )}
+      <Container
+        sx={{
+          width: '100%',
+          maxWidth: 1000,
+          px: 3,
+          py: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        <Grid container spacing={4} justifyContent="center" sx={{ width: '100%' }}>
+          <Grid item xs={12} md={8}>
+            <Box mb={4}>
               <GoogleDriveManager onFileSelect={handleFileSelect} />
             </Box>
           </Grid>
-          {meses.length > 0 && (
-            <Grid item xs={12} md={4}>
-              <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                <InputLabel id="mes-select-label">Mês</InputLabel>
-                <Select
-                  labelId="mes-select-label"
-                  value={mesSelecionado}
-                  label="Mês"
-                  onChange={handleMesChange}
-                  size={isMobile ? 'small' : 'medium'}
-                >
-                  {meses.map((mes, idx) => (
-                    <MenuItem key={mes} value={idx}>{mes}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          )}
-          {data.length > 2 && (
+          {arquivoValido && (
             <>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                  <InputLabel id="tipo-grafico-label">Tipo de Gráfico</InputLabel>
-                  <Select
-                    labelId="tipo-grafico-label"
-                    value={tipoGrafico}
-                    label="Tipo de Gráfico"
-                    onChange={e => setTipoGrafico(e.target.value as 'pizza' | 'barra')}
-                    size={isMobile ? 'small' : 'medium'}
-                  >
-                    <MenuItem value="pizza">Pizza</MenuItem>
-                    <MenuItem value="barra">Barra</MenuItem>
-                  </Select>
-                </FormControl>
+              <Grid item xs={6}>
+                {meses.length > 0 && (
+                  <FormControl fullWidth size="medium">
+                    <InputLabel id="mes-select-label">Mês</InputLabel>
+                    <Select
+                      labelId="mes-select-label"
+                      value={mesSelecionado}
+                      label="Mês"
+                      onChange={handleMesChange}
+                      size="medium"
+                    >
+                      {meses.map((mes, idx) => (
+                        <MenuItem key={mes} value={idx}>{mes}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+              </Grid>
+              <Grid item xs={6}>
+                {data.length > 2 && (
+                  <FormControl fullWidth size="medium">
+                    <InputLabel id="tipo-grafico-label">Tipo de Gráfico</InputLabel>
+                    <Select
+                      labelId="tipo-grafico-label"
+                      value={tipoGrafico}
+                      label="Tipo de Gráfico"
+                      onChange={e => setTipoGrafico(e.target.value as 'pizza' | 'barra')}
+                      size="medium"
+                    >
+                      <MenuItem value="pizza">Pizza</MenuItem>
+                      <MenuItem value="barra">Barra</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
               </Grid>
               <Grid item xs={12}>
-                <Paper sx={{ p: isMobile ? 1 : 3, mb: isMobile ? 1 : 3 }}>
-                  <ResponsiveContainer width="100%" height={isMobile ? 220 : 350}>
+                <Box mt={4} mb={2} textAlign="center">
+                  <strong style={{ fontSize: 22 }}>Gráfico de despesas</strong>
+                </Box>
+              </Grid>
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3, mb: 3, width: '100%', maxWidth: 900, mx: 'auto' }}>
+                  <ResponsiveContainer width="100%" height={350}>
                     {tipoGrafico === 'pizza' ? (
                       <PieChart>
                         <Pie
@@ -155,7 +210,7 @@ const MainContent: React.FC = () => {
                           nameKey="categoria"
                           cx="50%"
                           cy="50%"
-                          outerRadius={isMobile ? 70 : 120}
+                          outerRadius={120}
                           label={({ name }) => name}
                         >
                           {data.map((entry, index) => (
@@ -178,9 +233,14 @@ const MainContent: React.FC = () => {
                 </Paper>
               </Grid>
               <Grid item xs={12}>
+                <Box mt={4} mb={2} textAlign="center">
+                  <strong style={{ fontSize: 22 }}>Tabela de despesas</strong>
+                </Box>
+              </Grid>
+              <Grid item xs={12}>
                 <Fade in={true}>
-                  <Paper sx={{ p: isMobile ? 1 : 3, overflowX: isMobile ? 'auto' : 'unset' }}>
-                    <Box sx={{ width: '100%', overflowX: isMobile ? 'auto' : 'unset' }}>
+                  <Paper sx={{ p: 3, overflowX: 'unset', width: '100%', maxWidth: 900, mx: 'auto' }}>
+                    <Box sx={{ width: '100%' }}>
                       <FinanceTable data={data} setData={handleDataChange} />
                     </Box>
                   </Paper>

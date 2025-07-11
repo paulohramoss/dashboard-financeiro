@@ -80,16 +80,17 @@ const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect })
   return (
     <Box
       sx={{
-        minHeight: '80vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
         borderRadius: 3,
         boxShadow: 3,
-        py: 6,
-        mt: 4
+        py: 3,
+        mt: 6,
+        mx: 'auto',
+        width: '100%',
       }}
     >
       <img
@@ -103,58 +104,61 @@ const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ onFileSelect })
       <Typography variant="h6" color="text.secondary" gutterBottom align="center">
         Importe, edite e gerencie suas finanças de forma simples e segura.
       </Typography>
-      <Box mt={4} display="flex" gap={2}>
+      <Button
+        variant="outlined"
+        size="large"
+        startIcon={<FolderOpenIcon />}
+        component="label"
+        disabled={isLoading}
+      >
+        Importar do Computador
+        <input
+          type="file"
+          hidden
+          accept=".pdf,.xls,.xlsx"
+          onChange={handleLocalFileImport}
+        />
+      </Button>
+      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+        Apenas arquivos <b>.pdf</b>, <b>.xls</b> ou <b>.xlsx</b> são suportados.
+      </Typography>
+      {!isAuthenticated ? (
         <Button
-          variant="outlined"
+          variant="contained"
           size="large"
-          startIcon={<FolderOpenIcon />}
-          component="label"
+          startIcon={<GoogleIcon />}
+          onClick={handleAuthenticate}
           disabled={isLoading}
         >
-          Importar do Computador
-          <input
-            type="file"
-            hidden
-            onChange={handleLocalFileImport}
-          />
+          Autenticar
         </Button>
-        {!isAuthenticated ? (
+      ) : (
+        <>
           <Button
             variant="contained"
             size="large"
-            startIcon={<GoogleIcon />}
-            onClick={handleAuthenticate}
+            startIcon={<CloudUploadIcon />}
+            component="label"
             disabled={isLoading}
           >
-            Autenticar
+            Upload de Arquivo
+            <input
+              type="file"
+              hidden
+              accept=".pdf,.xls,.xlsx"
+              onChange={handleFileUpload}
+            />
           </Button>
-        ) : (
-          <>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<CloudUploadIcon />}
-              component="label"
-              disabled={isLoading}
-            >
-              Upload de Arquivo
-              <input
-                type="file"
-                hidden
-                onChange={handleFileUpload}
-              />
-            </Button>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={handleListFiles}
-              disabled={isLoading}
-            >
-              Listar Arquivos
-            </Button>
-          </>
-        )}
-      </Box>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={handleListFiles}
+            disabled={isLoading}
+          >
+            Listar Arquivos
+          </Button>
+        </>
+      )}
       {isLoading && <CircularProgress sx={{ mt: 4 }} />}
       {error && (
         <Typography color="error" sx={{ mt: 2 }}>
